@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TAT channel resistance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --paper:#E9EDF1; --sheet:#F8FAFB; --grid:rgba(35,70,200,.055); --ink:#22303E; --muted:#5B6875; --rule:#C6CFD8;
+  --res:#B5179E; --net:#2346C8; --title:#C8202A; --live:#D27A00; --live-soft:rgba(210,122,0,.13);
+  --open:#BF1F2A; --open-soft:rgba(191,31,42,.08); --chip:#FFFFFF; --chip-on:#FFF3DF; --on-accent:#FFFFFF;
+  --font:"Barlow","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow","Roboto Condensed","Helvetica Neue",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#11171E; --sheet:#171F28; --grid:rgba(134,166,255,.06); --ink:#CFD8E2; --muted:#8D9AA7; --rule:#2B3846;
+    --res:#EE6BD2; --net:#86A6FF; --title:#FF6A70; --live:#FFB127; --live-soft:rgba(255,177,39,.14);
+    --open:#FF6B6B; --open-soft:rgba(255,107,107,.10); --chip:#1E2833; --chip-on:#3A2E17; --on-accent:#10161D; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11171E; --sheet:#171F28; --grid:rgba(134,166,255,.06); --ink:#CFD8E2; --muted:#8D9AA7; --rule:#2B3846;
+  --res:#EE6BD2; --net:#86A6FF; --title:#FF6A70; --live:#FFB127; --live-soft:rgba(255,177,39,.14);
+  --open:#FF6B6B; --open-soft:rgba(255,107,107,.10); --chip:#1E2833; --chip-on:#3A2E17; --on-accent:#10161D; color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 20px 56px}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--net);outline-offset:2px}
+
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:18px}
+h1{font-family:var(--cond);font-weight:600;font-size:34px;line-height:1.05;margin:0;letter-spacing:.2px}
+.sub{color:var(--muted);margin:4px 0 0}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.btn{background:var(--chip);border:1px solid var(--rule);border-radius:4px;padding:6px 12px;cursor:pointer;line-height:1.3}
+.btn:hover{border-color:var(--net)}
+.btn.primary{background:var(--net);border-color:var(--net);color:var(--on-accent)}
+
+.top{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;margin-bottom:16px}
+@media (max-width:760px){.top{grid-template-columns:1fr}}
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:18px 20px}
+.panel h2{font-family:var(--cond);font-weight:600;font-size:20px;margin:0 0 8px}
+
+.reading{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.value{font-family:var(--cond);font-weight:600;font-size:clamp(48px,9vw,72px);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.unit{font-family:var(--cond);font-size:30px;font-weight:500;color:var(--muted)}
+.reading.is-open .value{color:var(--open)}
+.eq{margin:8px 0 0;color:var(--muted);font-variant-numeric:tabular-nums}
+.eq.bad{color:var(--open);font-weight:500}
+.closed{margin-top:14px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.closed .lbl{color:var(--muted)}
+.tag{border:1px solid var(--rule);border-radius:3px;padding:1px 7px;font-size:14px;font-variant-numeric:tabular-nums}
+.tag.live{border-color:var(--live);background:var(--live-soft);font-weight:600}
+.tag.none{color:var(--muted);border-style:dashed}
+
+.field{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.field label{min-width:56px;color:var(--muted)}
+.num{width:130px;padding:6px 10px;border:1px solid var(--rule);border-radius:4px;background:var(--chip);font-variant-numeric:tabular-nums}
+.result{margin:4px 0 14px;font-variant-numeric:tabular-nums}
+.result strong{font-weight:600}
+.result .muted{color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--live)}
+.range-ends{display:flex;justify-content:space-between;color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+
+.sheetwrap{background:var(--sheet);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:20px 20px;border:1.5px solid var(--net);border-radius:2px;margin-bottom:16px}
+.sheetbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid var(--rule);color:var(--muted);font-size:14px;flex-wrap:wrap}
+.scroller{overflow-x:auto;-webkit-overflow-scrolling:touch}
+svg.schem{display:block;width:100%;min-width:760px;height:auto}
+.wire{stroke:var(--ink);stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:stroke .15s,stroke-width .15s}
+.resz{stroke:var(--res);stroke-width:1.8;fill:none;stroke-linejoin:round;transition:stroke .15s,stroke-width .15s}
+.live{stroke:var(--live)!important;stroke-width:3.4!important}
+.rlabel{fill:var(--res);font-family:var(--font);font-size:13px}
+.relaylbl{fill:var(--ink);font-family:var(--font);font-size:11.5px}
+.rowname{fill:var(--ink);font-family:var(--cond);font-weight:600;font-size:22px}
+.rownote{fill:var(--open);font-family:var(--font);font-size:12px;font-weight:600}
+.netlbl{fill:var(--net);font-family:var(--font);font-size:13px}
+.title{fill:var(--title);font-family:var(--font);font-weight:600;font-size:20px}
+.dot{fill:var(--ink)}
+.coil{fill:var(--sheet);stroke:var(--ink);stroke-width:1.4}
+.link{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.band{fill:transparent;transition:fill .15s}
+.band.open{fill:var(--open-soft)}
+.relay{cursor:pointer;outline:none}
+.relay .hit{fill:transparent;stroke:transparent;stroke-width:2}
+.relay:hover .hit{fill:var(--live-soft)}
+.relay:focus-visible .hit{stroke:var(--net)}
+.relay.on .coil{fill:var(--chip-on);stroke:var(--live)}
+.term{fill:var(--sheet);stroke:var(--net);stroke-width:1.6}
+
+.rows{display:grid;gap:0}
+.row{display:grid;grid-template-columns:52px minmax(0,1fr) 150px 110px;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--rule)}
+.row:first-of-type{border-top:0}
+.row .name{font-family:var(--cond);font-weight:600;font-size:22px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-width:52px;padding:5px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--chip);cursor:pointer;font-size:14px;font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{border-color:var(--live);background:var(--chip-on)}
+.chip.carrying{background:var(--live);border-color:var(--live);color:var(--on-accent);font-weight:600}
+.row .carry{color:var(--muted);font-size:15px}
+.row .add{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.row.is-open .carry,.row.is-open .add{color:var(--open);font-weight:600}
+.row.fixed .carry{color:var(--muted)}
+@media (max-width:760px){
+  .row{grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"n c c" "n k a"}
+  .row .name{grid-area:n}.row .chips{grid-area:c}.row .carry{grid-area:k}.row .add{grid-area:a}
+}
+
+details.table{background:var(--sheet);border:1px solid var(--rule);border-radius:6px;margin-top:16px}
+details.table summary{cursor:pointer;padding:14px 20px;font-family:var(--cond);font-weight:600;font-size:20px}
+.tscroll{max-height:420px;overflow:auto;border-top:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:14.5px}
+th,td{padding:5px 12px;text-align:left;white-space:nowrap}
+thead th{position:sticky;top:0;background:var(--sheet);border-bottom:1px solid var(--rule);font-weight:600}
+tbody tr:nth-child(even){background:var(--grid)}
+tbody tr.current{background:var(--live-soft)}
+tbody tr.current td:first-child{box-shadow:inset 3px 0 0 var(--live)}
+td.r{text-align:right}
+.set{padding:2px 10px;font-size:13.5px}
+
+.facts{margin-top:18px;color:var(--muted);font-size:15px;max-width:78ch}
+.facts p{margin:6px 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>TAT channel resistance</h1>
+      <p class="sub">Between TAT_INPUT_1 and TAT_INPUT_3, ideal relay contacts</p>
+    </div>
+    <div class="presets" role="group" aria-label="Presets">
+      <button class="btn" data-preset="min">Minimum</button>
+      <button class="btn" data-preset="max">Maximum</button>
+      <button class="btn" data-preset="open">All open</button>
+      <button class="btn" data-preset="closed">All closed</button>
+    </div>
+  </header>
+
+  <section class="top">
+    <div class="panel" aria-live="polite">
+      <div class="reading" id="reading"><span class="value" id="value">59.250</span><span class="unit" id="unit">Ω</span></div>
+      <p class="eq" id="eq"></p>
+      <div class="closed" id="closed"></div>
+    </div>
+    <div class="panel">
+      <h2>Set a target</h2>
+      <div class="field">
+        <label for="target">Target</label>
+        <input class="num" id="target" type="number" inputmode="decimal" step="0.125" min="30" max="125.875" value="75.3">
+        <span>Ω</span>
+        <button class="btn primary" id="apply">Set relays</button>
+      </div>
+      <p class="result" id="nearest"></p>
+      <label for="step" class="range-ends"><span>Step <strong id="stepno">0</strong> of 767</span><span id="stepval"></span></label>
+      <input id="step" type="range" min="0" max="767" step="1" value="0" aria-label="Resistance step">
+      <div class="range-ends"><span>30.000 Ω</span><span>125.875 Ω</span></div>
+    </div>
+  </section>
+
+  <section class="sheetwrap">
+    <div class="sheetbar"><span>Click a relay to open or close it. The highlighted path carries the current.</span><span>26 relays, normally open</span></div>
+    <div class="scroller"><svg class="schem" id="schem" viewBox="0 0 1000 600" role="img" aria-label="TAT channel relay ladder schematic"></svg></div>
+  </section>
+
+  <section class="panel">
+    <h2>Relays by row</h2>
+    <div class="rows" id="rows"></div>
+  </section>
+
+  <details class="table" id="tbl">
+    <summary>All 768 settings</summary>
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>Step</th><th class="r">Resistance (Ω)</th><th>R4</th><th>R3</th><th>R2</th><th>R1</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </details>
+
+  <div class="facts">
+    <p>Range 30.000 to 125.875 Ω in 0.125 Ω steps, 768 values with no gaps. Total = 30 + (0 or 32) + 8a + 1b + 0.125c, where a, b and c are the positions of the leftmost closed relay in R3, R2 and R1, counted from 0.</p>
+    <p>In each ladder row only the leftmost closed relay carries current. A row with no closed relay breaks the circuit, so with every relay off at power-up the channel reads open.</p>
+    <p>In R4, R4-2 bypasses the 32 Ω. To add the 32 Ω, close R4-1 and open R4-2. TAT_INPUT_2 is the same node as TAT_INPUT_3.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var FIXED = 30, TAP = 32, STEP = 0.125, NSTEPS = 768;
+  var LADDERS = [{id:"R3", r:8}, {id:"R2", r:1}, {id:"R1", r:0.125}];
+  var ORDER = ["R4","R3","R2","R1"];
+  var SVGNS = "http://www.w3.org/2000/svg";
+
+  function zeros(n){ var a=[]; for(var i=0;i<n;i++) a.push(0); return a; }
+  function ones(n){ var a=[]; for(var i=0;i<n;i++) a.push(1); return a; }
+  function oneHot(k){ var a=zeros(8); a[k]=1; return a; }
+  function fmt(x){ return x.toFixed(3); }
+  function short(x){ return String(Math.round(x*1000)/1000); }
+
+  var state = {R4:[0,1], R3:oneHot(3), R2:oneHot(5), R1:oneHot(2)};
+  try {
+    var saved = JSON.parse(localStorage.getItem("tat-relay-state") || "null");
+    if (saved && ORDER.every(function(k){ return Array.isArray(saved[k]) && saved[k].length === (k==="R4"?2:8); })) state = saved;
+  } catch(e) {}
+  function save(){ try { localStorage.setItem("tat-relay-state", JSON.stringify(state)); } catch(e) {} }
+
+  // ---- circuit model ----
+  function analyse(s){
+    var rows = {}, open = false;
+    if (s.R4[1]) rows.R4 = {active:1, add:0};
+    else if (s.R4[0]) rows.R4 = {active:0, add:TAP};
+    else { rows.R4 = {active:-1, add:null}; open = true; }
+    LADDERS.forEach(function(L){
+      var k = s[L.id].indexOf(1);
+      if (k < 0) { rows[L.id] = {active:-1, add:null}; open = true; }
+      else rows[L.id] = {active:k, add:k*L.r};
+    });
+    var total = open ? null : FIXED + rows.R4.add + rows.R3.add + rows.R2.add + rows.R1.add;
+    return {rows:rows, open:open, total:total};
+  }
+  function settingFor(n){
+    var tap, rem;
+    if (n <= 511) { tap = 0; rem = n; } else { tap = 1; rem = n - 256; }
+    var a = Math.floor(rem/64), b = Math.floor((rem%64)/8), c = rem%8;
+    return {R4: tap ? [1,0] : [0,1], R3:oneHot(a), R2:oneHot(b), R1:oneHot(c)};
+  }
+  function namesFor(n){
+    var s = settingFor(n);
+    return [s.R4[0] ? "R4-1" : "R4-2", "R3-"+(s.R3.indexOf(1)+1), "R2-"+(s.R2.indexOf(1)+1), "R1-"+(s.R1.indexOf(1)+1)];
+  }
+  function sameState(a,b){ return ORDER.every(function(k){ return a[k].join("") === b[k].join(""); }); }
+
+  // ---- SVG schematic ----
+  var svg = document.getElementById("schem");
+  function el(tag, attrs, parent){
+    var e = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(e);
+    return e;
+  }
+  function text(x, y, str, cls, anchor, parent){
+    var t = el("text", {x:x, y:y, "class":cls, "text-anchor":anchor||"middle"}, parent);
+    t.textContent = str; return t;
+  }
+  function wire(d, parent){ return el("path", {d:d, "class":"wire"}, parent); }
+  function resistor(x1, x2, y, parent){
+    var mid = (x1+x2)/2, w = 44, s = mid - w/2, seg = w/6, d = "M"+x1+" "+y+" H"+s;
+    for (var i=0;i<6;i++) d += " L"+(s+seg*i+seg/2)+" "+(y+(i%2?7:-7));
+    d += " L"+(s+w)+" "+y+" H"+x2;
+    return el("path", {d:d, "class":"resz"}, parent);
+  }
+  function dot(x,y){ el("circle", {cx:x, cy:y, r:2.6, "class":"dot"}); }
+
+  var X0 = 150, DX = 110, NODE = function(k){ return X0 + DX*k; };
+  var ROWY = {R4:70, R3:200, R2:330, R1:460}, H = 80;
+  var parts = {bands:{}, notes:{}, relays:{}, res:{}, rail:{}, links:{}, fixed:null, l1:null, out:null};
+
+  text(560, 32, "TAT Channel", "title");
+
+  // row bands (for open-row highlight)
+  ORDER.forEach(function(k){
+    var y = ROWY[k], x2 = (k==="R4") ? 300 : NODE(7)+30;
+    parts.bands[k] = el("rect", {x:52, y:y-24, width:x2-52, height:H+36, rx:4, "class":"band"});
+  });
+
+  // R4 row
+  var A = X0, B = X0+DX, y4 = ROWY.R4, rail4 = y4+H;
+  parts.res.R4 = [resistor(A, B, y4)];
+  text((A+B)/2, y4-12, "32Ω", "rlabel");
+  parts.fixed = resistor(B, B+110, y4);
+  text(B+55, y4-12, "30Ω", "rlabel");
+  parts.l1 = wire("M"+(B+110)+" "+y4+" H930");
+  el("circle", {cx:938, cy:y4, r:7, "class":"term"});
+  text(930, y4-16, "TAT_INPUT_1", "netlbl", "end");
+  parts.rail.R4 = [wire("M"+A+" "+rail4+" H"+B)];
+  parts.links.R4 = wire("M"+A+" "+rail4+" H100 V"+ROWY.R3+" H"+X0);
+  text(30, y4+H/2+8, "R4", "rowname", "start");
+  parts.notes.R4 = text(30, y4+H/2+26, "", "rownote", "start");
+
+  // ladder rows
+  LADDERS.forEach(function(L, idx){
+    var y = ROWY[L.id], rail = y+H;
+    parts.res[L.id] = []; parts.rail[L.id] = [];
+    for (var k=0;k<7;k++){
+      parts.res[L.id].push(resistor(NODE(k), NODE(k+1), y));
+      text((NODE(k)+NODE(k+1))/2, y-12, (L.r===0.125?"0.125":L.r)+"Ω", "rlabel");
+      parts.rail[L.id].push(wire("M"+NODE(k)+" "+rail+" H"+NODE(k+1)));
+    }
+    if (L.id !== "R1") {
+      var next = ROWY[LADDERS[idx+1].id];
+      parts.links[L.id] = wire("M"+X0+" "+rail+" H100 V"+next+" H"+X0);
+    } else {
+      parts.out = wire("M"+NODE(7)+" "+rail+" V"+(rail+36)+" H930");
+      el("circle", {cx:938, cy:rail+36, r:7, "class":"term"});
+      text(906, rail+40, "TAT_INPUT_2 / 3", "netlbl", "end");
+    }
+    text(30, y+H/2+8, L.id, "rowname", "start");
+    parts.notes[L.id] = text(30, y+H/2+26, "", "rownote", "start");
+  });
+
+  // relays
+  function relay(row, i, x, y){
+    var rail = y+H, name = row+"-"+(i+1);
+    var g = el("g", {"class":"relay", tabindex:0, role:"switch", "aria-label":name+" relay", "aria-checked":"false"});
+    el("rect", {x:x-44, y:y+4, width:62, height:H-8, rx:4, "class":"hit"}, g);
+    var top = wire("M"+x+" "+y+" V"+(y+24), g);
+    var blade = wire("", g);
+    var bot = wire("M"+x+" "+(y+56)+" V"+rail, g);
+    el("line", {x1:x-19, y1:y+38, x2:x-2, y2:y+38, "class":"link"}, g);
+    el("rect", {x:x-33, y:y+22, width:14, height:32, rx:2, "class":"coil"}, g);
+    text(x-26, y+H-6, name, "relaylbl", "middle", g);
+    function toggle(){ state[row][i] = state[row][i] ? 0 : 1; update(); }
+    g.addEventListener("click", toggle);
+    g.addEventListener("keydown", function(ev){ if (ev.key===" " || ev.key==="Enter"){ ev.preventDefault(); toggle(); } });
+    dot(x, y); dot(x, rail);
+    return {g:g, top:top, blade:blade, bot:bot, x:x, y:y};
+  }
+  parts.relays.R4 = [relay("R4", 0, A, y4), relay("R4", 1, B, y4)];
+  LADDERS.forEach(function(L){
+    parts.relays[L.id] = [];
+    for (var k=0;k<8;k++) parts.relays[L.id].push(relay(L.id, k, NODE(k), ROWY[L.id]));
+  });
+
+  function setLive(e, on){ if (e) e.classList.toggle("live", !!on); }
+
+  // ---- row controls ----
+  var rowsEl = document.getElementById("rows"), rowUI = {};
+  ORDER.forEach(function(k){
+    var div = document.createElement("div"); div.className = "row";
+    var n = document.createElement("div"); n.className = "name"; n.textContent = k;
+    var chips = document.createElement("div"); chips.className = "chips";
+    var list = [];
+    state[k].forEach(function(_, i){
+      var b = document.createElement("button"); b.className = "chip"; b.type = "button";
+      b.textContent = k+"-"+(i+1);
+      b.addEventListener("click", function(){ state[k][i] = state[k][i] ? 0 : 1; update(); });
+      chips.appendChild(b); list.push(b);
+    });
+    var carry = document.createElement("div"); carry.className = "carry";
+    var add = document.createElement("div"); add.className = "add";
+    div.appendChild(n); div.appendChild(chips); div.appendChild(carry); div.appendChild(add);
+    rowsEl.appendChild(div);
+    rowUI[k] = {div:div, chips:list, carry:carry, add:add};
+  });
+  (function(){
+    var div = document.createElement("div"); div.className = "row fixed";
+    div.innerHTML = '<div class="name">30Ω</div><div class="chips"><span class="carry">Fixed resistor at TAT_L1</span></div><div class="carry">Always in path</div><div class="add">30.000 Ω</div>';
+    rowsEl.appendChild(div);
+  })();
+
+  // ---- lookup table ----
+  var tbody = document.getElementById("tbody"), html = [];
+  for (var n=0;n<NSTEPS;n++){
+    var nm = namesFor(n);
+    html.push('<tr data-n="'+n+'"><td>'+n+'</td><td class="r">'+fmt(FIXED+n*STEP)+'</td><td>'+nm[0]+'</td><td>'+nm[1]+'</td><td>'+nm[2]+'</td><td>'+nm[3]+'</td><td><button class="btn set" type="button" data-n="'+n+'">Set relays</button></td></tr>');
+  }
+  tbody.innerHTML = html.join("");
+  tbody.addEventListener("click", function(ev){
+    var b = ev.target.closest("button[data-n]"); if (!b) return;
+    state = settingFor(+b.getAttribute("data-n")); update();
+    document.getElementById("reading").scrollIntoView({behavior:"smooth", block:"center"});
+  });
+  var currentRow = null;
+
+  // ---- readout / target ----
+  var valueEl = document.getElementById("value"), unitEl = document.getElementById("unit"),
+      readingEl = document.getElementById("reading"), eqEl = document.getElementById("eq"),
+      closedEl = document.getElementById("closed"), stepEl = document.getElementById("step"),
+      stepNo = document.getElementById("stepno"), stepVal = document.getElementById("stepval"),
+      targetEl = document.getElementById("target"), nearestEl = document.getElementById("nearest");
+
+  function nearestStep(t){
+    if (!isFinite(t)) return null;
+    return Math.max(0, Math.min(NSTEPS-1, Math.round((t-FIXED)/STEP)));
+  }
+  function showNearest(){
+    var t = parseFloat(targetEl.value), n = nearestStep(t);
+    if (n === null) { nearestEl.innerHTML = '<span class="muted">Enter a value between 30 and 125.875 Ω.</span>'; return; }
+    var r = FIXED + n*STEP, err = r - t, note = "";
+    if (t < FIXED) note = " (below minimum)"; else if (t > FIXED + (NSTEPS-1)*STEP) note = " (above maximum)";
+    nearestEl.innerHTML = 'Nearest <strong>'+fmt(r)+' Ω</strong> <span class="muted">('+(err>=0?"+":"−")+fmt(Math.abs(err))+' Ω'+note+')</span><br><span class="muted">Close '+namesFor(n).join(", ")+'</span>';
+  }
+
+  function update(){
+    var a = analyse(state);
+    // readout
+    readingEl.classList.toggle("is-open", a.open);
+    if (a.open){
+      valueEl.textContent = "Open"; unitEl.textContent = "";
+      var bad = ORDER.filter(function(k){ return a.rows[k].active < 0; });
+      eqEl.className = "eq bad";
+      eqEl.textContent = "No path through " + bad.join(", ") + ". Close at least one relay in " + (bad.length>1 ? "each of these rows." : "that row.");
+    } else {
+      valueEl.textContent = fmt(a.total); unitEl.textContent = "Ω";
+      eqEl.className = "eq";
+      eqEl.textContent = "= 30 + " + ORDER.map(function(k){ return short(a.rows[k].add); }).join(" + ") + " Ω";
+    }
+    // closed list
+    closedEl.innerHTML = "";
+    var lbl = document.createElement("span"); lbl.className = "lbl"; lbl.textContent = "Closed:"; closedEl.appendChild(lbl);
+    var any = false;
+    ORDER.forEach(function(k){
+      state[k].forEach(function(v, i){
+        if (!v) return; any = true;
+        var t = document.createElement("span"); t.className = "tag" + (a.rows[k].active===i ? " live" : "");
+        t.textContent = k+"-"+(i+1); t.title = a.rows[k].active===i ? "Carrying current" : "Closed, no current";
+        closedEl.appendChild(t);
+      });
+    });
+    if (!any){ var t0 = document.createElement("span"); t0.className = "tag none"; t0.textContent = "none"; closedEl.appendChild(t0); }
+    var cp = document.createElement("button"); cp.className = "btn"; cp.type = "button"; cp.textContent = "Copy list";
+    cp.addEventListener("click", function(){
+      var list = []; ORDER.forEach(function(k){ state[k].forEach(function(v,i){ if (v) list.push(k+"-"+(i+1)); }); });
+      var s = list.join(", ") || "none";
+      try { navigator.clipboard.writeText(s).then(function(){ cp.textContent = "Copied"; setTimeout(function(){ cp.textContent = "Copy list"; }, 1400); }, function(){ cp.textContent = s; }); }
+      catch(e){ cp.textContent = s; }
+    });
+    closedEl.appendChild(cp);
+
+    // schematic
+    var on = !a.open;
+    setLive(parts.l1, on); setLive(parts.fixed, on); setLive(parts.out, on);
+    ORDER.forEach(function(k){
+      var r = a.rows[k], act = r.active;
+      parts.bands[k].classList.toggle("open", act < 0);
+      parts.notes[k].textContent = act < 0 ? "open" : "";
+      parts.relays[k].forEach(function(R, i){
+        var closed = !!state[k][i], x = R.x, y = R.y;
+        R.blade.setAttribute("d", closed ? "M"+x+" "+(y+24)+" V"+(y+56) : "M"+x+" "+(y+24)+" L"+(x+14)+" "+(y+52));
+        R.g.classList.toggle("on", closed);
+        R.g.setAttribute("aria-checked", closed ? "true" : "false");
+        var carrying = on && act === i;
+        setLive(R.top, carrying); setLive(R.blade, carrying); setLive(R.bot, carrying);
+      });
+      if (k === "R4"){
+        setLive(parts.res.R4[0], on && act === 0);
+        setLive(parts.rail.R4[0], on && act === 1);
+        setLive(parts.links.R4, on);
+      } else {
+        parts.res[k].forEach(function(e, j){ setLive(e, on && j < act); });
+        parts.rail[k].forEach(function(e, j){ setLive(e, on && (k === "R1" ? j >= act : j < act)); });
+        if (parts.links[k]) setLive(parts.links[k], on);
+      }
+      // row controls
+      var ui = rowUI[k];
+      ui.div.classList.toggle("is-open", act < 0);
+      ui.chips.forEach(function(b, i){
+        b.setAttribute("aria-pressed", state[k][i] ? "true" : "false");
+        b.classList.toggle("carrying", on && act === i);
+      });
+      if (act < 0){ ui.carry.textContent = "Open, close one relay"; ui.add.textContent = "open"; }
+      else {
+        var nm = k+"-"+(act+1), extra = state[k].reduce(function(s,v){ return s+v; },0) - 1;
+        if (k === "R4") ui.carry.textContent = act === 1 ? (state.R4[0] ? "R4-2 (bypasses 32Ω, R4-1 idle)" : "R4-2 (bypasses 32Ω)") : "R4-1 (32Ω in path)";
+        else ui.carry.textContent = nm + (extra > 0 ? " (" + extra + " more closed, no effect)" : "");
+        ui.add.textContent = "+" + fmt(r.add) + " Ω";
+      }
+    });
+
+    // slider + table
+    if (!a.open){
+      var n = Math.round((a.total-FIXED)/STEP);
+      stepEl.value = n; stepNo.textContent = n; stepVal.textContent = fmt(a.total) + " Ω";
+    } else { stepNo.textContent = "–"; stepVal.textContent = "open"; }
+    if (currentRow) currentRow.classList.remove("current");
+    currentRow = null;
+    if (!a.open){
+      currentRow = tbody.querySelector('tr[data-n="'+Math.round((a.total-FIXED)/STEP)+'"]');
+      if (currentRow) currentRow.classList.add("current");
+    }
+    save();
+  }
+
+  // ---- events ----
+  document.querySelectorAll("[data-preset]").forEach(function(b){
+    b.addEventListener("click", function(){
+      var p = b.getAttribute("data-preset");
+      if (p === "min") state = settingFor(0);
+      else if (p === "max") state = settingFor(NSTEPS-1);
+      else if (p === "open") state = {R4:zeros(2), R3:zeros(8), R2:zeros(8), R1:zeros(8)};
+      else state = {R4:ones(2), R3:ones(8), R2:ones(8), R1:ones(8)};
+      update();
+    });
+  });
+  stepEl.addEventListener("input", function(){ state = settingFor(+stepEl.value); update(); });
+  targetEl.addEventListener("input", showNearest);
+  targetEl.addEventListener("keydown", function(ev){ if (ev.key === "Enter") document.getElementById("apply").click(); });
+  document.getElementById("apply").addEventListener("click", function(){
+    var n = nearestStep(parseFloat(targetEl.value)); if (n === null) return;
+    state = settingFor(n); update();
+  });
+
+  update(); showNearest();
+})();
+</script>
+</body>
+</html>

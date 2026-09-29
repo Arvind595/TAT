@@ -10,7 +10,7 @@ A small Python utility that computes the relay configuration needed to set a **T
 
 ## Hardware Overview
 
-![TAT Channel schematic](docs/tat_channel_schematic.png)
+![TAT Channel schematic](tat_channel_schematic.png)
 
 ### Resistor network
 
